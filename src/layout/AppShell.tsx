@@ -8,6 +8,8 @@ import { isPrimaryTabPath, primaryTabForPath } from './appRoutes';
 import { StackRoutes } from './StackRoutes';
 import type { PrimaryTab } from './appRoutes';
 
+const STACK_EXIT_MS = 170;
+
 function tabClass(active: PrimaryTab, tab: PrimaryTab): string {
   return ['tab-panel', active === tab && 'tab-panel--active'].filter(Boolean).join(' ');
 }
@@ -18,6 +20,11 @@ export function AppShell({ openAdd }: { openAdd: (pocketId?: string) => void }) 
   const onPrimary = isPrimaryTabPath(pathname);
   const [stackMounted, setStackMounted] = useState(!onPrimary);
   const [stackExiting, setStackExiting] = useState(false);
+  const [visitedTabs, setVisitedTabs] = useState<Set<PrimaryTab>>(() => new Set([activeTab]));
+
+  useEffect(() => {
+    setVisitedTabs((prev) => (prev.has(activeTab) ? prev : new Set(prev).add(activeTab)));
+  }, [activeTab]);
 
   useEffect(() => {
     if (!onPrimary) {
@@ -30,25 +37,33 @@ export function AppShell({ openAdd }: { openAdd: (pocketId?: string) => void }) 
     const id = window.setTimeout(() => {
       setStackMounted(false);
       setStackExiting(false);
-    }, 300);
+    }, STACK_EXIT_MS);
     return () => window.clearTimeout(id);
   }, [onPrimary, stackMounted]);
 
   return (
     <div className="app-shell">
       <div className="tab-panels" data-active={activeTab}>
-        <section className={tabClass(activeTab, 'home')} aria-hidden={activeTab !== 'home'} inert={activeTab !== 'home'}>
-          <HomeScreen onAdd={() => openAdd()} />
-        </section>
-        <section className={tabClass(activeTab, 'pockets')} aria-hidden={activeTab !== 'pockets'} inert={activeTab !== 'pockets'}>
-          <PocketsScreen />
-        </section>
-        <section className={tabClass(activeTab, 'search')} aria-hidden={activeTab !== 'search'} inert={activeTab !== 'search'}>
-          <SearchScreen />
-        </section>
-        <section className={tabClass(activeTab, 'settings')} aria-hidden={activeTab !== 'settings'} inert={activeTab !== 'settings'}>
-          <SettingsScreen />
-        </section>
+        {visitedTabs.has('home') && (
+          <section className={tabClass(activeTab, 'home')} aria-hidden={activeTab !== 'home'} inert={activeTab !== 'home'}>
+            <HomeScreen onAdd={() => openAdd()} />
+          </section>
+        )}
+        {visitedTabs.has('pockets') && (
+          <section className={tabClass(activeTab, 'pockets')} aria-hidden={activeTab !== 'pockets'} inert={activeTab !== 'pockets'}>
+            <PocketsScreen />
+          </section>
+        )}
+        {visitedTabs.has('search') && (
+          <section className={tabClass(activeTab, 'search')} aria-hidden={activeTab !== 'search'} inert={activeTab !== 'search'}>
+            <SearchScreen />
+          </section>
+        )}
+        {visitedTabs.has('settings') && (
+          <section className={tabClass(activeTab, 'settings')} aria-hidden={activeTab !== 'settings'} inert={activeTab !== 'settings'}>
+            <SettingsScreen />
+          </section>
+        )}
       </div>
       {stackMounted && <StackRoutes openAdd={openAdd} exiting={stackExiting} />}
     </div>

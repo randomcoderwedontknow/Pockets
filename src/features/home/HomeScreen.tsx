@@ -4,7 +4,7 @@ import { useSmoothNavigate } from '@/layout/SmoothNavigationProvider';
 import { Pin, Search } from 'lucide-react';
 import { useVaultStore, selectPocketItemCount } from '@/store/vaultStore';
 import { useAccountStore } from '@/store/accountStore';
-import { useSettingsStore } from '@/store/settingsStore';
+import { MAX_RECENT_ITEMS, useSettingsStore } from '@/store/settingsStore';
 import { greeting, relativeTime } from '@/lib/format';
 import { PocketBadge } from '@/components/icons';
 import { Button } from '@/components/Button';
@@ -25,7 +25,7 @@ export function HomeScreen({ onAdd }: { onAdd: () => void }) {
     return recentIds
       .map((id) => items.find((i) => i.id === id))
       .filter(Boolean)
-      .slice(0, 5) as typeof items;
+      .slice(0, MAX_RECENT_ITEMS) as typeof items;
   }, [items, recentIds]);
 
   const headline = displayName.trim() ? `${greeting()}, ${displayName.trim()}` : greeting();

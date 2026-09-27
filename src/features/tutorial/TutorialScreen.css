@@ -24,7 +24,7 @@
 
 .tutorial-panel {
   padding: 24px 20px;
-  animation: page-in var(--dur) var(--ease);
+  animation: none;
 }
 
 .tutorial-panel h2 {

@@ -1,21 +1,9 @@
-import { flushSync } from 'react-dom';
 import type { NavigateFunction, NavigateOptions, To } from 'react-router-dom';
 
-export function withViewTransition(update: () => void): void {
-  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-    document.startViewTransition(() => {
-      flushSync(update);
-    });
-  } else {
-    update();
-  }
-}
-
+/** Immediate navigation — motion comes from CSS only (no View Transition API / flushSync). */
 export function smoothNavigate(navigate: NavigateFunction, to: To | number, options?: NavigateOptions): void {
-  withViewTransition(() => {
-    if (typeof to === 'number') navigate(to);
-    else navigate(to, options);
-  });
+  if (typeof to === 'number') navigate(to);
+  else navigate(to, options);
 }
 
 /** Same-origin in-app anchor (React Router Link, NavLink, etc.). */

@@ -141,21 +141,19 @@ button:focus-visible {
   padding-bottom: calc(var(--safe-bottom) + var(--space-6));
 }
 
-/* Primary tabs stay mounted; crossfade between tabs. Stack uses view transitions + CSS fallback. */
+/* Primary tabs: lazy-mounted, opacity crossfade. Stack: light fade (GPU-friendly). */
 .app-shell {
   position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  view-transition-name: app-shell;
 }
 
 .tab-panels {
   position: relative;
   flex: 1;
   min-height: 0;
-  isolation: isolate;
 }
 
 .tab-panel {
@@ -164,22 +162,18 @@ button:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  contain: layout style paint;
+  content-visibility: hidden;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transform: translateX(12px);
-  transition:
-    opacity 320ms var(--ease),
-    transform 320ms var(--ease),
-    visibility 320ms;
+  transition: opacity var(--dur-nav) var(--ease-out);
   z-index: 0;
 }
 
 .tab-panel--active {
+  content-visibility: visible;
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
-  transform: none;
   z-index: 1;
 }
 
@@ -195,23 +189,16 @@ button:focus-visible {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
-  view-transition-name: stack-layer;
+  contain: layout style;
 }
 
 .stack-content {
   min-height: 100%;
-  animation: stack-enter 340ms var(--ease) both;
+  animation: stack-enter var(--dur-nav) var(--ease-out) both;
 }
 
 .stack-layer--exit .stack-content {
-  animation: stack-exit 280ms var(--ease) both;
-}
-
-@keyframes stack-exit {
-  to {
-    opacity: 0;
-    transform: translateX(14px);
-  }
+  animation: stack-exit var(--dur-nav) var(--ease-out) both;
 }
 
 .stack-layer .page {
@@ -221,79 +208,29 @@ button:focus-visible {
 @keyframes stack-enter {
   from {
     opacity: 0;
-    transform: translateX(18px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
-/* View Transitions API (Chrome, Android WebView) — smooth route changes */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 320ms;
-  animation-timing-function: var(--ease);
-}
-
-::view-transition-old(root) {
-  animation-name: vt-fade-out;
-}
-
-::view-transition-new(root) {
-  animation-name: vt-fade-slide-in;
-}
-
-::view-transition-old(stack-layer) {
-  animation: vt-stack-out 280ms var(--ease) both;
-}
-
-::view-transition-new(stack-layer) {
-  animation: vt-stack-in 320ms var(--ease) both;
-}
-
-@keyframes vt-fade-out {
+@keyframes stack-exit {
+  from {
+    opacity: 1;
+  }
   to {
     opacity: 0;
-    transform: scale(0.985);
-  }
-}
-
-@keyframes vt-fade-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@keyframes vt-stack-out {
-  to {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
-}
-
-@keyframes vt-stack-in {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tab-panel {
-    transition-duration: 0.01ms;
-    transform: none;
+    transition: none;
+    will-change: auto;
   }
 
   .stack-content {
     animation: none;
-  }
-
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
   }
 }
 

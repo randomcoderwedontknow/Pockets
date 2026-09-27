@@ -22,12 +22,23 @@ npm run build
 
 ## Android (Capacitor)
 
+1. Install [Android Studio](https://developer.android.com/studio) (SDK 36, JDK 17+).
+2. Sync the web build into the native project:
+
 ```bash
+npm install
 npm run cap:sync
-npm run cap:open:android
 ```
 
-Then build the APK from Android Studio.
+3. Open the **`android`** folder in Android Studio (not the repo root).
+4. Connect your phone (USB debugging) or start an emulator (API 24+).
+5. **Run** ▶ on app `app`.
+
+Shortcut: `npm run cap:open:android` opens the project after sync.
+
+After UI changes, run `npm run cap:sync` again before rebuilding in Android Studio.
+
+Biometrics and secure storage use the Aparajita Capacitor plugins already wired in `AndroidManifest.xml`.
 
 ## Security notes
 

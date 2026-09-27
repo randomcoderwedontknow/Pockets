@@ -22,7 +22,7 @@ export function StackRoutes({ openAdd, exiting }: { openAdd: (pocketId?: string)
 
   return (
     <div className={['stack-layer', exiting && 'stack-layer--exit'].filter(Boolean).join(' ')} ref={layerRef}>
-      <div className="stack-content" key={location.pathname}>
+      <div className="stack-content">
         <Routes location={location}>
           <Route path="/pockets/new" element={<PocketEditor />} />
           <Route path="/pockets/:id/edit" element={<PocketEditor />} />

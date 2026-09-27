@@ -65,11 +65,13 @@
   --shadow-md: 0 4px 16px rgba(38, 32, 52, 0.08);
   --shadow-lg: 0 12px 32px rgba(38, 32, 52, 0.14);
 
-  /* Motion */
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur-fast: 140ms;
-  --dur: 220ms;
-  --dur-slow: 320ms;
+  /* Motion — short for snappy nav; sheets/toasts use --dur */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-nav: 160ms;
+  --dur: 200ms;
+  --dur-slow: 280ms;
 
   /* Layout */
   --nav-height: 64px;

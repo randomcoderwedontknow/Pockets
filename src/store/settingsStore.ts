@@ -18,9 +18,11 @@ export interface Settings {
   /** Seconds after which a copied protected value is cleared from the clipboard (0 = never). */
   clipboardClearSeconds: number;
   displayName: string;
-  /** Recently opened item ids (max 5), most recent first. */
+  /** Recently opened item ids (max 3), most recent first. */
   recentItemIds: string[];
 }
+
+export const MAX_RECENT_ITEMS = 3;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
@@ -51,6 +53,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async load() {
     const stored = await getStorage().getSetting<Partial<Settings>>(SETTINGS_KEY);
     const merged = { ...DEFAULT_SETTINGS, ...(stored ?? {}) };
+    if (merged.recentItemIds.length > MAX_RECENT_ITEMS) {
+      merged.recentItemIds = merged.recentItemIds.slice(0, MAX_RECENT_ITEMS);
+    }
     set({ ...merged, loaded: true });
     applyTheme(merged.theme);
   },
@@ -65,7 +70,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async recordRecentItem(itemId) {
     const ids = get().recentItemIds.filter((id) => id !== itemId);
     ids.unshift(itemId);
-    await get().update({ recentItemIds: ids.slice(0, 5) });
+    await get().update({ recentItemIds: ids.slice(0, MAX_RECENT_ITEMS) });
   },
 }));
 
