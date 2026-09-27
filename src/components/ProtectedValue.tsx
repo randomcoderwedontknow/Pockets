@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Copy, Eye, EyeOff } from 'lucide-react';
 import type { Field } from '@/domain/types';
-import { NotePasscodeRequiredError, revealField, VaultLockedError } from '@/security/securityService';
+import {
+  ensureOwnerRecoveryOnField,
+  NotePasscodeRequiredError,
+  revealField,
+  VaultLockedError,
+} from '@/security/securityService';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { requestAuthentication } from '@/features/lock/authFlow';
@@ -51,6 +56,7 @@ export function ProtectedValue({ field }: Props) {
         }
       }
       const value = await revealField(field, notePasscode);
+      void ensureOwnerRecoveryOnField(field, value);
       setShown(value);
     } catch (e) {
       if (e instanceof NotePasscodeRequiredError) {

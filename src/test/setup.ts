@@ -15,6 +15,7 @@ export async function resetTestStorage() {
     pockets: [],
     items: [],
     fieldsByItem: {},
+    attachmentsByItem: {},
     tags: [],
   });
   const adapter = new DexieStorage(`pockets-test-${Date.now()}-${n++}`);

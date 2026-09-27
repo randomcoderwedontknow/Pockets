@@ -1,4 +1,5 @@
 import { Logo } from '@/components/Logo';
+import { APP_VERSION } from '@/version';
 import { SettingsSubHeader } from './SettingsScreen';
 
 export function AboutSettings() {
@@ -9,7 +10,7 @@ export function AboutSettings() {
         <Logo size={96} />
         <h2>Pockets</h2>
         <p className="text-secondary">Your important information, always in your pocket.</p>
-        <p className="help">Version 1.0.0</p>
+        <p className="help">Version {APP_VERSION}</p>
       </div>
       <div className="list">
         <div className="list-item">

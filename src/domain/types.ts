@@ -21,7 +21,12 @@ export type PocketColor =
   | 'red'
   | 'teal'
   | 'pink'
-  | 'slate';
+  | 'slate'
+  | 'amber'
+  | 'cyan'
+  | 'indigo'
+  | 'rose'
+  | 'lime';
 
 export interface Vault {
   id: string;
@@ -85,6 +90,8 @@ export interface Field {
   value: string | null;
   /** Ciphertext. Always null when the field is not protected. */
   encrypted: EncryptedValue | null;
+  /** Escrow for device-owner recovery; never exported. */
+  ownerRecovery?: EncryptedValue | null;
   sortOrder: number;
 }
 
@@ -92,6 +99,15 @@ export interface Tag {
   id: string;
   vaultId: string;
   name: string;
+  createdAt: ISODate;
+}
+
+export interface ItemAttachment {
+  id: string;
+  itemId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
   createdAt: ISODate;
 }
 
@@ -105,6 +121,7 @@ export interface FieldDraft {
   value: string | null;
   /** Carried through when a protected value was left untouched. */
   encrypted?: EncryptedValue | null;
+  ownerRecovery?: EncryptedValue | null;
   /** Set only while saving: encrypts this field with a note-specific passcode (v2). */
   notePasscode?: string;
 }

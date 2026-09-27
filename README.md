@@ -38,6 +38,18 @@ Shortcut: `npm run cap:open:android` opens the project after sync.
 
 After UI changes, run `npm run cap:sync` again before rebuilding in Android Studio.
 
+### App icon
+
+The launcher icon is generated from **`assets/icon.png`** (1024×1024 or larger, square). A copy lives at **`android/branding/pockets-app-icon.png`** for reference in Android Studio.
+
+Regenerate all `mipmap-*` launcher and splash PNGs after you change the logo:
+
+```bash
+npm run icons:android
+```
+
+In Android Studio you can also use **File → New → Image Asset**, choose **Launcher Icons (Adaptive and Legacy)**, and point **Path** at `android/branding/pockets-app-icon.png`. This project already uses the generated files under `android/app/src/main/res/mipmap-*` — prefer `npm run icons:android` so web and native stay in sync.
+
 Biometrics and secure storage use the Aparajita Capacitor plugins already wired in `AndroidManifest.xml`.
 
 ## Security notes

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { Field, Item, ItemDraft, ItemWithFields, Pocket, PocketDraft, Tag, Vault } from '@/domain/types';
+import type { Field, Item, ItemAttachment, ItemDraft, ItemWithFields, Pocket, PocketDraft, Tag, Vault } from '@/domain/types';
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS_PER_ITEM } from '@/domain/attachments';
 import { SCHEMA_VERSION } from '@/domain/types';
 import { newId, nowISO } from '@/domain/ids';
 import { getStorage } from '@/platform/storage';
@@ -12,6 +13,7 @@ interface VaultState {
   items: Item[];
   /** Fields grouped by item id. */
   fieldsByItem: Record<string, Field[]>;
+  attachmentsByItem: Record<string, ItemAttachment[]>;
   tags: Tag[];
 
   load(): Promise<void>;
@@ -24,6 +26,9 @@ interface VaultState {
 
   saveItem(draft: ItemDraft): Promise<Item>;
   deleteItem(id: string): Promise<void>;
+  addAttachment(itemId: string, file: File): Promise<ItemAttachment>;
+  deleteAttachment(id: string): Promise<void>;
+  getAttachmentBlob(id: string): Promise<ArrayBuffer | null>;
   togglePinned(id: string): Promise<void>;
   toggleFavourite(id: string): Promise<void>;
 
@@ -72,6 +77,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   pockets: [],
   items: [],
   fieldsByItem: {},
+  attachmentsByItem: {},
   tags: [],
 
   async load() {
@@ -98,12 +104,17 @@ export const useVaultStore = create<VaultState>((set, get) => ({
       (fieldsByItem[f.itemId] ??= []).push(f);
     }
     for (const list of Object.values(fieldsByItem)) list.sort((a, b) => a.sortOrder - b.sortOrder);
+    const attachmentsByItem: Record<string, ItemAttachment[]> = {};
+    for (const a of snap.attachments ?? []) {
+      (attachmentsByItem[a.itemId] ??= []).push(a);
+    }
     set({
       loaded: true,
       vault: snap.vault,
       pockets: [...snap.pockets].sort((a, b) => a.sortOrder - b.sortOrder),
       items: sortItems(snap.items),
       fieldsByItem,
+      attachmentsByItem,
       tags: snap.tags,
     });
   },
@@ -226,11 +237,58 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   },
 
   async deleteItem(id) {
-    const { items, fieldsByItem } = get();
+    const { items, fieldsByItem, attachmentsByItem } = get();
     await getStorage().deleteItem(id);
     const next = { ...fieldsByItem };
     delete next[id];
-    set({ items: items.filter((i) => i.id !== id), fieldsByItem: next });
+    const nextAtt = { ...attachmentsByItem };
+    delete nextAtt[id];
+    set({ items: items.filter((i) => i.id !== id), fieldsByItem: next, attachmentsByItem: nextAtt });
+  },
+
+  async addAttachment(itemId, file) {
+    const list = get().attachmentsByItem[itemId] ?? [];
+    if (list.length >= MAX_ATTACHMENTS_PER_ITEM) throw new Error(`Maximum ${MAX_ATTACHMENTS_PER_ITEM} attachments per item.`);
+    if (file.size > MAX_ATTACHMENT_BYTES) throw new Error('File is too large (max 5 MB).');
+    const buf = await file.arrayBuffer();
+    const now = nowISO();
+    const meta: ItemAttachment = {
+      id: newId(),
+      itemId,
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      sizeBytes: file.size,
+      createdAt: now,
+    };
+    await getStorage().putAttachment(meta, buf);
+    set({
+      attachmentsByItem: { ...get().attachmentsByItem, [itemId]: [...list, meta] },
+    });
+    return meta;
+  },
+
+  async deleteAttachment(id) {
+    const storage = getStorage();
+    const all = get().attachmentsByItem;
+    let itemId: string | null = null;
+    for (const [iid, list] of Object.entries(all)) {
+      if (list.some((a) => a.id === id)) {
+        itemId = iid;
+        break;
+      }
+    }
+    await storage.deleteAttachment(id);
+    if (!itemId) return;
+    set({
+      attachmentsByItem: {
+        ...all,
+        [itemId]: (all[itemId] ?? []).filter((a) => a.id !== id),
+      },
+    });
+  },
+
+  async getAttachmentBlob(id) {
+    return getStorage().getAttachmentData(id);
   },
 
   async togglePinned(id) {

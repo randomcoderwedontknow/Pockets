@@ -10,6 +10,11 @@ export const POCKET_COLORS: { key: PocketColor; label: string; cssVar: string }[
   { key: 'teal', label: 'Teal', cssVar: '--pocket-teal' },
   { key: 'pink', label: 'Pink', cssVar: '--pocket-pink' },
   { key: 'slate', label: 'Slate', cssVar: '--pocket-slate' },
+  { key: 'amber', label: 'Amber', cssVar: '--pocket-amber' },
+  { key: 'cyan', label: 'Cyan', cssVar: '--pocket-cyan' },
+  { key: 'indigo', label: 'Indigo', cssVar: '--pocket-indigo' },
+  { key: 'rose', label: 'Rose', cssVar: '--pocket-rose' },
+  { key: 'lime', label: 'Lime', cssVar: '--pocket-lime' },
 ];
 
 export function pocketColorVar(color: PocketColor): string {
@@ -42,4 +47,14 @@ export const POCKET_ICONS: string[] = [
   'smartphone',
   'globe',
   'gift',
+  'credit-card',
+  'file-text',
+  'map-pin',
+  'pill',
+  'building',
+  'users',
+  'tag',
+  'lock',
+  'cloud',
+  'stethoscope',
 ];

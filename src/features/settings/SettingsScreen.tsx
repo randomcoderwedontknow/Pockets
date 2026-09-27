@@ -5,6 +5,7 @@ import { AvatarBadge } from '@/components/AvatarBadge';
 import { useAccountStore } from '@/store/accountStore';
 import { useTutorialStore } from '@/store/tutorialStore';
 import { Button } from '@/components/Button';
+import { APP_VERSION } from '@/version';
 
 const ROWS = [
   { to: '/settings/account', icon: User, title: 'Account', sub: 'Name and avatar on this device' },
@@ -65,6 +66,10 @@ export function SettingsScreen() {
           </Button>
         </div>
       )}
+
+      <p className="help" style={{ textAlign: 'center', marginTop: 28, marginBottom: 8 }}>
+        v{APP_VERSION}
+      </p>
     </div>
   );
 }

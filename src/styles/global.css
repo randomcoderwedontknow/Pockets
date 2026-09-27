@@ -424,6 +424,29 @@ button.list-item:active { background: var(--bg-sunken); }
   color: var(--text-tertiary);
 }
 
+.pocket-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 400px) {
+  .pocket-icon-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.whats-new-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
 .error-text {
   font-size: 14px;
   color: var(--danger);

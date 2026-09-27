@@ -1,11 +1,16 @@
 import Dexie, { type Table } from 'dexie';
 import type { LocalAccount } from '@/domain/localAccount';
-import type { Field, Item, Pocket, Tag, Vault } from '@/domain/types';
+import type { Field, Item, ItemAttachment, Pocket, Tag, Vault } from '@/domain/types';
 import type { SecurityRecord, StorageAdapter, StorageEstimate, VaultSnapshot } from './StorageAdapter';
 
 interface SettingRow {
   key: string;
   value: unknown;
+}
+
+interface AttachmentBlobRow {
+  id: string;
+  data: ArrayBuffer;
 }
 
 class PocketsDB extends Dexie {
@@ -17,6 +22,8 @@ class PocketsDB extends Dexie {
   settings!: Table<SettingRow, string>;
   security!: Table<SecurityRecord, string>;
   localAccount!: Table<LocalAccount, string>;
+  attachments!: Table<ItemAttachment, string>;
+  attachmentBlobs!: Table<AttachmentBlobRow, string>;
 
   constructor(name = 'pockets') {
     super(name);
@@ -31,6 +38,10 @@ class PocketsDB extends Dexie {
     });
     this.version(2).stores({
       localAccount: 'id',
+    });
+    this.version(3).stores({
+      attachments: 'id, itemId',
+      attachmentBlobs: 'id',
     });
   }
 }
@@ -70,15 +81,21 @@ export class DexieStorage implements StorageAdapter {
     await this.db.items.put(item);
   }
   async deleteItem(id: string) {
-    await this.db.transaction('rw', this.db.items, this.db.fields, async () => {
+    await this.db.transaction('rw', this.db.items, this.db.fields, this.db.attachments, this.db.attachmentBlobs, async () => {
+      const attIds = await this.db.attachments.where('itemId').equals(id).primaryKeys();
+      if (attIds.length) await this.db.attachmentBlobs.bulkDelete(attIds);
+      await this.db.attachments.where('itemId').equals(id).delete();
       await this.db.fields.where('itemId').equals(id).delete();
       await this.db.items.delete(id);
     });
   }
   async deleteItemsByPocket(pocketId: string) {
-    return this.db.transaction('rw', this.db.items, this.db.fields, async () => {
+    return this.db.transaction('rw', this.db.items, this.db.fields, this.db.attachments, this.db.attachmentBlobs, async () => {
       const ids = await this.db.items.where('pocketId').equals(pocketId).primaryKeys();
       if (ids.length) {
+        const attIds = await this.db.attachments.where('itemId').anyOf(ids).primaryKeys();
+        if (attIds.length) await this.db.attachmentBlobs.bulkDelete(attIds);
+        await this.db.attachments.where('itemId').anyOf(ids).delete();
         await this.db.fields.where('itemId').anyOf(ids).delete();
         await this.db.items.bulkDelete(ids);
       }
@@ -100,6 +117,35 @@ export class DexieStorage implements StorageAdapter {
   }
   async deleteFieldsByItem(itemId: string) {
     await this.db.fields.where('itemId').equals(itemId).delete();
+  }
+
+  listAttachments() {
+    return this.db.attachments.toArray();
+  }
+  listAttachmentsByItem(itemId: string) {
+    return this.db.attachments.where('itemId').equals(itemId).sortBy('createdAt');
+  }
+  async putAttachment(meta: ItemAttachment, data: ArrayBuffer) {
+    await this.db.transaction('rw', this.db.attachments, this.db.attachmentBlobs, async () => {
+      await this.db.attachments.put(meta);
+      await this.db.attachmentBlobs.put({ id: meta.id, data });
+    });
+  }
+  getAttachmentData(id: string) {
+    return this.db.attachmentBlobs.get(id).then((r) => r?.data ?? null);
+  }
+  async deleteAttachment(id: string) {
+    await this.db.transaction('rw', this.db.attachments, this.db.attachmentBlobs, async () => {
+      await this.db.attachmentBlobs.delete(id);
+      await this.db.attachments.delete(id);
+    });
+  }
+  async deleteAttachmentsByItem(itemId: string) {
+    await this.db.transaction('rw', this.db.attachments, this.db.attachmentBlobs, async () => {
+      const ids = await this.db.attachments.where('itemId').equals(itemId).primaryKeys();
+      if (ids.length) await this.db.attachmentBlobs.bulkDelete(ids);
+      await this.db.attachments.where('itemId').equals(itemId).delete();
+    });
   }
 
   listTags() {
@@ -138,26 +184,37 @@ export class DexieStorage implements StorageAdapter {
   }
 
   async snapshot(): Promise<VaultSnapshot> {
-    const [vault, pockets, items, fields, tags, security] = await Promise.all([
+    const [vault, pockets, items, fields, tags, attachments, security] = await Promise.all([
       this.getVault(),
       this.listPockets(),
       this.listItems(),
       this.listFields(),
       this.listTags(),
+      this.listAttachments(),
       this.getSecurity(),
     ]);
-    return { vault, pockets, items, fields, tags, security };
+    return { vault, pockets, items, fields, tags, attachments, security };
   }
 
   async restore(snapshot: VaultSnapshot) {
-    const { vault, pockets, items, fields, tags, security } = this.db;
-    await this.db.transaction('rw', [vault, pockets, items, fields, tags, security], async () => {
-      await Promise.all([vault.clear(), pockets.clear(), items.clear(), fields.clear(), tags.clear(), security.clear()]);
+    const { vault, pockets, items, fields, tags, attachments, attachmentBlobs, security } = this.db;
+    await this.db.transaction('rw', [vault, pockets, items, fields, tags, attachments, attachmentBlobs, security], async () => {
+      await Promise.all([
+        vault.clear(),
+        pockets.clear(),
+        items.clear(),
+        fields.clear(),
+        tags.clear(),
+        attachments.clear(),
+        attachmentBlobs.clear(),
+        security.clear(),
+      ]);
       if (snapshot.vault) await vault.put(snapshot.vault);
       await pockets.bulkPut(snapshot.pockets);
       await items.bulkPut(snapshot.items);
       await fields.bulkPut(snapshot.fields);
       await tags.bulkPut(snapshot.tags);
+      await attachments.bulkPut(snapshot.attachments ?? []);
       if (snapshot.security) await security.put(snapshot.security);
     });
   }

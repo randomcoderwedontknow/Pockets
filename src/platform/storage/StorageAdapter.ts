@@ -1,5 +1,5 @@
 import type { LocalAccount } from '@/domain/localAccount';
-import type { EncryptedValue, Field, Item, Pocket, Tag, Vault } from '@/domain/types';
+import type { EncryptedValue, Field, Item, ItemAttachment, Pocket, Tag, Vault } from '@/domain/types';
 
 /** Key-derivation parameters stored alongside the wrapped vault key. */
 export interface KdfParams {
@@ -42,6 +42,7 @@ export interface VaultSnapshot {
   items: Item[];
   fields: Field[];
   tags: Tag[];
+  attachments: ItemAttachment[];
   security: SecurityRecord | null;
 }
 
@@ -77,6 +78,13 @@ export interface StorageAdapter {
   listFieldsByItem(itemId: string): Promise<Field[]>;
   replaceFieldsForItem(itemId: string, fields: Field[]): Promise<void>;
   deleteFieldsByItem(itemId: string): Promise<void>;
+
+  listAttachments(): Promise<ItemAttachment[]>;
+  listAttachmentsByItem(itemId: string): Promise<ItemAttachment[]>;
+  putAttachment(meta: ItemAttachment, data: ArrayBuffer): Promise<void>;
+  getAttachmentData(id: string): Promise<ArrayBuffer | null>;
+  deleteAttachment(id: string): Promise<void>;
+  deleteAttachmentsByItem(itemId: string): Promise<void>;
 
   listTags(): Promise<Tag[]>;
   putTag(tag: Tag): Promise<void>;

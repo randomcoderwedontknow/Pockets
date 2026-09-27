@@ -44,6 +44,11 @@
   --pocket-teal: #4a9d9a;
   --pocket-pink: #d0568f;
   --pocket-slate: #5f6f7d;
+  --pocket-amber: #d4a017;
+  --pocket-cyan: #3a9fb8;
+  --pocket-indigo: #5c6bc0;
+  --pocket-rose: #e07088;
+  --pocket-lime: #7cb342;
 
   /* Radii */
   --radius-sm: 10px;

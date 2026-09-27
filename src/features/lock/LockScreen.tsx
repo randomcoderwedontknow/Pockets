@@ -4,6 +4,7 @@ import { Logo } from '@/components/Logo';
 import { Button } from '@/components/Button';
 import { failAuth } from './authFlow';
 import { verifyAppLockPin, hasAppLockPin } from '@/security/appLockService';
+import { verifyOwnerUnlock } from '@/security/ownerUnlockService';
 import { unlockWithPasscode, hasPasscode } from '@/security/securityService';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -66,6 +67,10 @@ export function LockScreen() {
     setError('');
     try {
       if (useAppPin) {
+        if (await verifyOwnerUnlock(passcode)) {
+          unlock();
+          return;
+        }
         const ok = await verifyAppLockPin(passcode);
         if (!ok) throw new Error('Incorrect app lock code.');
         unlock();

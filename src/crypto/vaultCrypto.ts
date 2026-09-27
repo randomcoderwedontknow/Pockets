@@ -156,3 +156,22 @@ export async function decryptStringWithPasscode(passcode: string, value: Encrypt
     throw new WrongCredentialError();
   }
 }
+
+/** Owner-recovery escrow (v11); key derived from seeded owner material + fixed seed passcode. */
+export async function encryptOwnerRecovery(plaintext: string, passcode: string, kdf: KdfParams): Promise<EncryptedValue> {
+  const dataKey = await deriveDataKey(passcode, kdf);
+  const iv = randomBytes(12);
+  const ct = await subtle().encrypt({ name: 'AES-GCM', iv }, dataKey, utf8Encode(plaintext));
+  return { v: 2, iv: toBase64(iv), ct: toBase64(ct), kdf };
+}
+
+export async function decryptOwnerRecovery(passcode: string, value: EncryptedValue): Promise<string> {
+  if (!value.kdf) throw new DecryptError();
+  const dataKey = await deriveDataKey(passcode, value.kdf);
+  try {
+    const pt = await subtle().decrypt({ name: 'AES-GCM', iv: fromBase64(value.iv) }, dataKey, fromBase64(value.ct));
+    return utf8Decode(pt);
+  } catch {
+    throw new WrongCredentialError();
+  }
+}

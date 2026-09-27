@@ -14,6 +14,9 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { relativeTime } from '@/lib/format';
 import { itemTypeMeta } from '@/domain/itemTypes';
 import { usePocketViewProtection } from './usePocketViewProtection';
+import { ItemAttachments } from './ItemAttachments';
+import { useOpenLinkConfirm } from './useOpenLinkConfirm';
+import { extractUrlsFromText } from '@/lib/urls';
 
 export function ItemDetail() {
   const { id } = useParams();
@@ -37,6 +40,9 @@ export function ItemDetail() {
   }, []);
 
   const { menu, closeMenu, protectFromMenu } = usePocketViewProtection(true, onProtectSelection);
+  const attachments = useVaultStore((s) => (id ? s.attachmentsByItem[id] ?? [] : []));
+  const { requestOpen, confirmProps: linkConfirm } = useOpenLinkConfirm();
+  const descUrls = item?.description ? extractUrlsFromText(item.description) : [];
 
   const applyProtect = async (notePasscode: string) => {
     if (!item || !protectText) return;
@@ -76,6 +82,7 @@ export function ItemDetail() {
                 protected: f.protected,
                 value: f.protected ? null : f.value,
                 encrypted: f.encrypted,
+                ownerRecovery: f.ownerRecovery,
               },
         ),
       });
@@ -170,19 +177,23 @@ export function ItemDetail() {
 
       {urlField?.value && (
         <div style={{ marginTop: 16 }}>
-          <Button
-            variant="soft"
-            block
-            icon={<ExternalLink size={16} />}
-            onClick={() => {
-              const href = urlField.value!.match(/^https?:\/\//) ? urlField.value! : `https://${urlField.value}`;
-              window.open(href, '_blank', 'noopener,noreferrer');
-            }}
-          >
+          <Button variant="soft" block icon={<ExternalLink size={16} />} onClick={() => requestOpen(urlField.value!)}>
             Open link
           </Button>
         </div>
       )}
+
+      {descUrls.length > 0 && (
+        <div className="stack" style={{ marginTop: 12, gap: 8 }}>
+          {descUrls.map((u) => (
+            <Button key={u} variant="ghost" block icon={<ExternalLink size={16} />} onClick={() => requestOpen(u)}>
+              {u.replace(/^https?:\/\//, '')}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      <ItemAttachments itemId={item.id} attachments={attachments} />
 
       <p className="help" style={{ marginTop: 16 }}>
         Updated {relativeTime(item.updatedAt)} · Created {relativeTime(item.createdAt)}
@@ -240,6 +251,17 @@ export function ItemDetail() {
         onConfirm={remove}
         onClose={() => setConfirmDelete(false)}
       />
+
+      {linkConfirm && (
+        <ConfirmSheet
+          open={linkConfirm.open}
+          title={linkConfirm.title}
+          message={linkConfirm.message}
+          confirmLabel={linkConfirm.confirmLabel}
+          onConfirm={linkConfirm.onConfirm}
+          onClose={linkConfirm.onClose}
+        />
+      )}
     </div>
   );
 }

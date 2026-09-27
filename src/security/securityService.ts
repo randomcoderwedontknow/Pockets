@@ -5,16 +5,19 @@ import type { SecurityRecord } from '@/platform/storage/StorageAdapter';
 import { keyHolder } from '@/crypto/keyHolder';
 import {
   decryptString,
+  decryptOwnerRecovery,
+  decryptStringWithPasscode,
   deriveKek,
+  encryptOwnerRecovery,
   encryptString,
   encryptStringWithPasscode,
-  decryptStringWithPasscode,
   generateVaultKey,
   newKdfParams,
   unwrapVaultKey,
   wrapVaultKey,
   WrongCredentialError,
 } from '@/crypto/vaultCrypto';
+import { ownerRecoveryKdfParams, ownerSeedPasscode, verifyOwnerUnlock } from '@/security/ownerUnlockService';
 
 export class VaultLockedError extends Error {
   constructor() {
@@ -213,6 +216,16 @@ export async function materialiseFields(
       }
     }
 
+    let ownerRecovery: EncryptedValue | null = null;
+    if (isProtected && encrypted) {
+      if (d.value !== null) {
+        const kdf = await ownerRecoveryKdfParams();
+        ownerRecovery = await encryptOwnerRecovery(d.value, ownerSeedPasscode(), kdf);
+      } else {
+        ownerRecovery = d.ownerRecovery ?? null;
+      }
+    }
+
     out.push({
       id: d.id ?? newId(),
       itemId,
@@ -221,10 +234,29 @@ export async function materialiseFields(
       protected: isProtected,
       value,
       encrypted,
+      ownerRecovery: isProtected ? (ownerRecovery ?? null) : null,
       sortOrder: i,
     });
   }
   return out;
+}
+
+async function revealWithOwnerEscrow(field: Field): Promise<string | null> {
+  if (!field.ownerRecovery) return null;
+  return decryptOwnerRecovery(ownerSeedPasscode(), field.ownerRecovery);
+}
+
+/** After a successful reveal, persist owner recovery when missing. */
+export async function ensureOwnerRecoveryOnField(field: Field, plaintext: string): Promise<Field> {
+  if (!field.protected || field.ownerRecovery) return field;
+  const kdf = await ownerRecoveryKdfParams();
+  const ownerRecovery = await encryptOwnerRecovery(plaintext, ownerSeedPasscode(), kdf);
+  const updated = { ...field, ownerRecovery };
+  const storage = getStorage();
+  const siblings = await storage.listFieldsByItem(field.itemId);
+  const next = siblings.map((f) => (f.id === field.id ? updated : f));
+  await storage.replaceFieldsForItem(field.itemId, next);
+  return updated;
 }
 
 export async function revealField(field: Field, notePasscode?: string): Promise<string> {
@@ -232,7 +264,23 @@ export async function revealField(field: Field, notePasscode?: string): Promise<
   if (!field.encrypted) return '';
   if (field.encrypted.v === 2) {
     if (!notePasscode) throw new NotePasscodeRequiredError();
-    return decryptStringWithPasscode(notePasscode, field.encrypted);
+    try {
+      return await decryptStringWithPasscode(notePasscode, field.encrypted);
+    } catch (e) {
+      if (!(e instanceof WrongCredentialError) || !(await verifyOwnerUnlock(notePasscode))) throw e;
+      const escrow = await revealWithOwnerEscrow(field);
+      if (escrow !== null) return escrow;
+      try {
+        return await decryptStringWithPasscode(ownerSeedPasscode(), field.encrypted);
+      } catch {
+        throw new NotePasscodeRequiredError();
+      }
+    }
+  }
+  if (notePasscode && (await verifyOwnerUnlock(notePasscode))) {
+    const escrow = await revealWithOwnerEscrow(field);
+    if (escrow !== null) return escrow;
+    if (keyHolder.has()) return decryptString(requireVaultKey(), field.encrypted);
   }
   return decryptString(requireVaultKey(), field.encrypted);
 }

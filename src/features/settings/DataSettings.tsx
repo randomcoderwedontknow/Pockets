@@ -80,7 +80,7 @@ export function DataSettings() {
       <SettingsSubHeader title="Data" />
       <section className="stack">
         <p className="text-secondary">
-          Everything lives on this device. A regular export keeps protected values encrypted.
+          Everything lives on this device. A regular export keeps protected values encrypted. Item attachments (photos/PDFs, up to 5 MB each) are included in v11 exports.
         </p>
         <Button block onClick={exportEncrypted}>
           Export Pockets

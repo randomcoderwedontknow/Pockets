@@ -99,7 +99,7 @@ export function PocketEditor() {
 
         <div className="field">
           <span className="label">Icon</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+          <div className="pocket-icon-grid">
             {POCKET_ICONS.map((key) => (
               <button
                 key={key}

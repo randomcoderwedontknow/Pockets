@@ -11,6 +11,7 @@ import { requestAuthentication } from '@/features/lock/authFlow';
 import { Button, IconButton } from '@/components/Button';
 import { NotePasscodeSheet } from '@/components/NotePasscodeSheet';
 import { toast } from '@/components/Toast';
+import { ItemAttachments } from './ItemAttachments';
 
 function blankField(): FieldDraft {
   return { name: '', kind: 'text', protected: false, value: '' };
@@ -25,6 +26,7 @@ export function ItemEditor() {
   const existingFields = useVaultStore((s) => (id ? s.fieldsByItem[id] : undefined));
   const pockets = useVaultStore((s) => s.pockets);
   const tags = useVaultStore((s) => s.tags);
+  const attachments = useVaultStore((s) => (id ? s.attachmentsByItem[id] ?? [] : []));
 
   const initialType = (params.get('type') as ItemType) || existing?.type || 'note';
   const meta = itemTypeMeta(initialType);
@@ -241,6 +243,8 @@ export function ItemEditor() {
           Protect this item
         </label>
         <p className="help">Protected values are encrypted and stay hidden until you authenticate.</p>
+
+        {id && <ItemAttachments itemId={id} attachments={attachments} editable />}
 
         {error && <p className="error-text">{error}</p>}
         <Button block onClick={() => void save()} disabled={busy || !title.trim() || !pocketId}>
