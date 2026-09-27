@@ -1,0 +1,37 @@
+.tutorial-progress {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.tutorial-progress-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.tutorial-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width var(--dur) var(--ease);
+}
+
+.tutorial-panel {
+  padding: 24px 20px;
+  animation: page-in var(--dur) var(--ease);
+}
+
+.tutorial-panel h2 {
+  font-size: 20px;
+  margin: 12px 0 8px;
+}
+
+.tutorial-actions {
+  margin-top: 24px;
+}

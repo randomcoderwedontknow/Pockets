@@ -1,0 +1,18 @@
+node_modules
+dist
+dist-ssr
+dev-dist
+*.local
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo
+
+# Android build outputs (project itself is committed)
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/.idea
+android/*.iml
+android/app/*.iml
+android/captures

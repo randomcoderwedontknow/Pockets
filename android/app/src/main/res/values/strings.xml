@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pockets</string>
+    <string name="title_activity_main">Pockets</string>
+    <string name="package_name">app.pockets.vault</string>
+    <string name="custom_url_scheme">app.pockets.vault</string>
+</resources>

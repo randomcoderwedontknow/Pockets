@@ -1,0 +1,42 @@
+.home-hero { padding: 8px 0 18px; }
+.home-kicker {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.home-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  text-align: left;
+}
+
+.pin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 14px 12px;
+  min-height: 76px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pin-card__title { font-weight: 600; }
+.pin-card__meta { font-size: 13px; color: var(--text-tertiary); }
