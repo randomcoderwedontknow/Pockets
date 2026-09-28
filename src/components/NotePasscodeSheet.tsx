@@ -7,6 +7,8 @@ interface Props {
   open: boolean;
   title?: string;
   message?: string;
+  /** create = new passcode with confirm; verify = enter existing passcode only */
+  mode?: 'create' | 'verify';
   onClose: () => void;
   onSubmit: (passcode: string) => void;
 }
@@ -15,6 +17,7 @@ export function NotePasscodeSheet({
   open,
   title = 'Passcode for this note',
   message = 'This passcode is only for this protected content—not your app unlock code.',
+  mode = 'create',
   onClose,
   onSubmit,
 }: Props) {
@@ -25,7 +28,7 @@ export function NotePasscodeSheet({
   const submit = () => {
     const v = validatePasscode(passcode);
     if (v) return setError(v);
-    if (passcode !== confirm) return setError('Passcodes do not match.');
+    if (mode === 'create' && passcode !== confirm) return setError('Passcodes do not match.');
     onSubmit(passcode);
     setPasscode('');
     setConfirm('');
@@ -57,10 +60,12 @@ export function NotePasscodeSheet({
           <span>Passcode</span>
           <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoFocus />
         </label>
-        <label className="field">
-          <span>Confirm</span>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-        </label>
+        {mode === 'create' && (
+          <label className="field">
+            <span>Confirm</span>
+            <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          </label>
+        )}
         {error && <p className="error-text">{error}</p>}
         <Button type="submit" block>
           Continue

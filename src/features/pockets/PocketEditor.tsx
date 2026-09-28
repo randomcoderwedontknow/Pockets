@@ -9,6 +9,8 @@ import { PocketGlyph } from '@/components/icons';
 import { Button, IconButton } from '@/components/Button';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { toast } from '@/components/Toast';
+import { requestAuthentication } from '@/features/lock/authFlow';
+import { pocketDeleteRequiresAuth } from '@/security/protectedContent';
 
 export function PocketEditor() {
   const { id } = useParams();
@@ -46,7 +48,16 @@ export function PocketEditor() {
     if (!existing) return;
     const others = pockets.filter((p) => p.id !== existing.id);
     const moveTo = others[0]?.id;
-    await useVaultStore.getState().deletePocket(existing.id, moveTo ? { moveTo } : 'delete-items');
+    const mode = moveTo ? { moveTo } : ('delete-items' as const);
+    const vault = useVaultStore.getState();
+    if (pocketDeleteRequiresAuth(vault.items, vault.fieldsByItem, existing.id, mode)) {
+      const ok = await requestAuthentication({
+        reason: 'Confirm before deleting items from this pocket',
+        requireKey: false,
+      });
+      if (!ok) return;
+    }
+    await useVaultStore.getState().deletePocket(existing.id, mode);
     toast('Pocket deleted');
     navigate('/pockets', { replace: true });
   };

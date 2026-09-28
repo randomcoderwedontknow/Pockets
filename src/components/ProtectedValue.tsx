@@ -87,6 +87,7 @@ export function ProtectedValue({ field }: Props) {
         </div>
         <NotePasscodeSheet
           open={passcodeOpen}
+          mode="verify"
           title="Note passcode"
           message="Enter the passcode you chose when you protected this text."
           onClose={() => setPasscodeOpen(false)}

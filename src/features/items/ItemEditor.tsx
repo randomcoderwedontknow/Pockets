@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useSmoothNavigate } from '@/layout/SmoothNavigationProvider';
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import type { FieldDraft, FieldKind, ItemType } from '@/domain/types';
 import { DEVICE_PRESETS, itemTypeMeta } from '@/domain/itemTypes';
-import { useVaultStore } from '@/store/vaultStore';
+import { selectItemAttachments, useVaultStore } from '@/store/vaultStore';
 import { hasPasscode } from '@/security/securityService';
 import { useSessionStore } from '@/store/sessionStore';
 import { requestAuthentication } from '@/features/lock/authFlow';
+import { useSettingsStore } from '@/store/settingsStore';
 import { Button, IconButton } from '@/components/Button';
 import { NotePasscodeSheet } from '@/components/NotePasscodeSheet';
 import { toast } from '@/components/Toast';
 import { ItemAttachments } from './ItemAttachments';
+import {
+  EditRevealCancelledError,
+  fieldsToLockedDrafts,
+  itemHasProtectedSecrets,
+  itemNeedsVaultKeyToReveal,
+  revealFieldDraftsForEdit,
+} from '@/security/protectedContent';
 
 function blankField(): FieldDraft {
   return { name: '', kind: 'text', protected: false, value: '' };
@@ -25,7 +33,7 @@ export function ItemEditor() {
   const existingFields = useVaultStore((s) => (id ? s.fieldsByItem[id] : undefined));
   const pockets = useVaultStore((s) => s.pockets);
   const tags = useVaultStore((s) => s.tags);
-  const attachments = useVaultStore((s) => (id ? s.attachmentsByItem[id] ?? [] : []));
+  const attachments = useVaultStore((s) => selectItemAttachments(s, id));
 
   const initialType = (params.get('type') as ItemType) || existing?.type || 'note';
   const meta = itemTypeMeta(initialType);
@@ -35,11 +43,17 @@ export function ItemEditor() {
   const [description, setDescription] = useState(existing?.description ?? '');
   const [pocketId, setPocketId] = useState(existing?.pocketId ?? params.get('pocket') ?? pockets[0]?.id ?? '');
   const [tagNames, setTagNames] = useState(
-    existing ? existing.tagIds.map((tid) => tags.find((t) => t.id === tid)?.name ?? '').filter(Boolean).join(', ') : '',
+    existing ? (existing.tagIds ?? []).map((tid) => tags.find((t) => t.id === tid)?.name ?? '').filter(Boolean).join(', ') : '',
   );
   const [favourite, setFavourite] = useState(existing?.favourite ?? false);
   const [pinned, setPinned] = useState(existing?.pinned ?? false);
   const [itemProtected, setItemProtected] = useState(existing?.protected ?? meta.defaultProtected);
+
+  const needsProtectedUnlock = !!(existing && existingFields && itemHasProtectedSecrets(existing, existingFields));
+  const [secretsUnlocked, setSecretsUnlocked] = useState(!needsProtectedUnlock);
+  const [unlockBusy, setUnlockBusy] = useState(false);
+  const notePasscodeResolver = useRef<((v: string | null) => void) | null>(null);
+  const [unlockFieldLabel, setUnlockFieldLabel] = useState('');
 
   useEffect(() => {
     if (!existing && pockets.length === 0) {
@@ -50,20 +64,58 @@ export function ItemEditor() {
 
   const [fields, setFields] = useState<FieldDraft[]>(() => {
     if (existing && existingFields) {
-      return existingFields.map((f) => ({
-        id: f.id,
-        name: f.name,
-        kind: f.kind,
-        protected: f.protected,
-        value: f.protected ? null : (f.value ?? ''),
-        encrypted: f.encrypted,
-      }));
+      return fieldsToLockedDrafts(existingFields, existing.protected);
     }
     return meta.template();
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notePasscodePrompt, setNotePasscodePrompt] = useState(false);
+  const [notePasscodePrompt, setNotePasscodePrompt] = useState<'save' | 'unlock' | false>(false);
+
+  const askNotePasscode = (fieldLabel: string) =>
+    new Promise<string | null>((resolve) => {
+      notePasscodeResolver.current = resolve;
+      setUnlockFieldLabel(fieldLabel);
+      setNotePasscodePrompt('unlock');
+    });
+
+  const unlockForEdit = async () => {
+    if (!existing || !existingFields || secretsUnlocked) return;
+    setUnlockBusy(true);
+    setError('');
+    try {
+      const needsVaultKey = itemNeedsVaultKeyToReveal(existingFields, existing.protected);
+      const { reauthForProtected, protectedGraceSeconds } = useSettingsStore.getState();
+      const fresh = useSessionStore.getState().isAuthFresh(protectedGraceSeconds);
+      if (reauthForProtected && !fresh) {
+        const ok = await requestAuthentication({
+          reason: 'Edit protected information',
+          requireKey: needsVaultKey,
+        });
+        if (!ok) return;
+      } else if (needsVaultKey && !useSessionStore.getState().hasKey) {
+        const ok = await requestAuthentication({ reason: 'Unlock to edit protected fields', requireKey: true });
+        if (!ok) return;
+      }
+      const drafts = await revealFieldDraftsForEdit(existingFields, existing.protected, askNotePasscode);
+      setFields(drafts);
+      setSecretsUnlocked(true);
+    } catch (e) {
+      if (e instanceof EditRevealCancelledError) return;
+      toast((e as Error).message || 'Could not unlock fields', 'error');
+    } finally {
+      setUnlockBusy(false);
+    }
+  };
+
+  const fieldValueLocked = (f: FieldDraft) =>
+    needsProtectedUnlock && !secretsUnlocked && !!f.encrypted && f.value === null && (f.protected || itemProtected);
+
+  const valuePlaceholder = (f: FieldDraft) => {
+    if (fieldValueLocked(f)) return 'Unlock to view or edit';
+    if (f.protected && f.value === null) return 'Leave blank to keep existing value';
+    return 'Value';
+  };
 
   const updateField = (idx: number, patch: Partial<FieldDraft>) => {
     setFields((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
@@ -80,6 +132,10 @@ export function ItemEditor() {
     setBusy(true);
     setError('');
     try {
+      if (needsProtectedUnlock && !secretsUnlocked) {
+        setError('Unlock protected fields before saving.');
+        return;
+      }
       const needsProtect = itemProtected || fields.some((f) => f.protected);
       const fieldHasContent = (f: FieldDraft) => f.value !== null && f.value !== '';
       const needsNewNotePasscode =
@@ -92,7 +148,7 @@ export function ItemEditor() {
         );
 
       if (needsNewNotePasscode && !notePasscode) {
-        setNotePasscodePrompt(true);
+        setNotePasscodePrompt('save');
         return;
       }
 
@@ -179,6 +235,17 @@ export function ItemEditor() {
           </div>
         )}
 
+        {needsProtectedUnlock && !secretsUnlocked && (
+          <div className="card" style={{ padding: 12, marginTop: 8 }}>
+            <p className="help" style={{ marginBottom: 12 }}>
+              Protected fields stay hidden until you verify with app lock, biometrics, or each note&apos;s passcode.
+            </p>
+            <Button block onClick={() => void unlockForEdit()} disabled={unlockBusy}>
+              Unlock to edit
+            </Button>
+          </div>
+        )}
+
         <div className="section-title" style={{ marginTop: 8 }}>
           Fields
         </div>
@@ -197,15 +264,17 @@ export function ItemEditor() {
             </div>
             {f.kind === 'multiline' ? (
               <textarea
-                value={f.value ?? ''}
+                value={fieldValueLocked(f) ? '' : (f.value ?? '')}
+                readOnly={fieldValueLocked(f)}
                 onChange={(e) => updateField(idx, { value: e.target.value })}
-                placeholder={f.protected && f.value === null ? 'Leave blank to keep existing value' : 'Value'}
+                placeholder={valuePlaceholder(f)}
               />
             ) : (
               <input
-                value={f.value ?? ''}
+                value={fieldValueLocked(f) ? '' : (f.value ?? '')}
+                readOnly={fieldValueLocked(f)}
                 onChange={(e) => updateField(idx, { value: e.target.value })}
-                placeholder={f.protected && f.value === null ? 'Leave blank to keep existing value' : 'Value'}
+                placeholder={valuePlaceholder(f)}
                 type={f.kind === 'url' ? 'url' : 'text'}
               />
             )}
@@ -264,17 +333,40 @@ export function ItemEditor() {
         {id && <ItemAttachments itemId={id} attachments={attachments} editable />}
 
         {error && <p className="error-text">{error}</p>}
-        <Button block onClick={() => void save()} disabled={busy || !title.trim() || !pocketId}>
+        <Button
+          block
+          onClick={() => void save()}
+          disabled={busy || !title.trim() || !pocketId || (needsProtectedUnlock && !secretsUnlocked)}
+        >
           Save
         </Button>
       </div>
 
       <NotePasscodeSheet
-        open={notePasscodePrompt}
-        onClose={() => setNotePasscodePrompt(false)}
-        onSubmit={(code) => {
+        open={notePasscodePrompt !== false}
+        mode={notePasscodePrompt === 'unlock' ? 'verify' : 'create'}
+        title={notePasscodePrompt === 'unlock' ? `Passcode for “${unlockFieldLabel}”` : undefined}
+        message={
+          notePasscodePrompt === 'unlock'
+            ? 'Enter the passcode you set for this protected field.'
+            : undefined
+        }
+        onClose={() => {
+          if (notePasscodePrompt === 'unlock') {
+            notePasscodeResolver.current?.(null);
+            notePasscodeResolver.current = null;
+          }
           setNotePasscodePrompt(false);
-          void save(code);
+        }}
+        onSubmit={(code) => {
+          if (notePasscodePrompt === 'unlock') {
+            notePasscodeResolver.current?.(code);
+            notePasscodeResolver.current = null;
+            setNotePasscodePrompt(false);
+          } else {
+            setNotePasscodePrompt(false);
+            void save(code);
+          }
         }}
       />
     </div>

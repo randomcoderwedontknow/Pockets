@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSmoothNavigate } from '@/layout/SmoothNavigationProvider';
 import { ChevronLeft, ExternalLink, Heart, Pencil, Pin, Shield, Trash2 } from 'lucide-react';
-import { useVaultStore } from '@/store/vaultStore';
+import { selectItemAttachments, useVaultStore } from '@/store/vaultStore';
 import { PocketBadge } from '@/components/icons';
 import { Button, IconButton } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -17,6 +17,8 @@ import { usePocketViewProtection } from './usePocketViewProtection';
 import { ItemAttachments } from './ItemAttachments';
 import { useOpenLinkConfirm } from './useOpenLinkConfirm';
 import { extractUrlsFromText } from '@/lib/urls';
+import { requestAuthentication } from '@/features/lock/authFlow';
+import { itemHasProtectedSecrets } from '@/security/protectedContent';
 
 export function ItemDetail() {
   const { id } = useParams();
@@ -41,7 +43,7 @@ export function ItemDetail() {
   }, []);
 
   const { menu, closeMenu, protectFromMenu } = usePocketViewProtection(!!item, onProtectSelection);
-  const attachments = useVaultStore((s) => (id ? s.attachmentsByItem[id] ?? [] : []));
+  const attachments = useVaultStore((s) => selectItemAttachments(s, id));
   const { requestOpen, confirmProps: linkConfirm } = useOpenLinkConfirm();
 
   if (!item) {
@@ -70,7 +72,7 @@ export function ItemDetail() {
         type: item.type,
         title: item.title,
         description: item.description,
-        tagNames: item.tagIds
+        tagNames: tagIds
           .map((tid) => allTags.find((t) => t.id === tid)?.name ?? '')
           .filter(Boolean),
         favourite: item.favourite,
@@ -107,6 +109,13 @@ export function ItemDetail() {
   const urlField = itemFields.find((f) => f.kind === 'url' && !f.protected && f.value);
 
   const remove = async () => {
+    if (itemHasProtectedSecrets(item, itemFields)) {
+      const ok = await requestAuthentication({
+        reason: 'Confirm before deleting protected information',
+        requireKey: false,
+      });
+      if (!ok) return;
+    }
     await useVaultStore.getState().deleteItem(item.id);
     toast('Item deleted');
     navigate(-1);

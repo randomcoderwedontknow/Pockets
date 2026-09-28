@@ -28,8 +28,8 @@ export function StackRoutes({ openAdd, exiting }: { openAdd: (pocketId?: string)
           <Route path="/pockets/:id/edit" element={<PocketEditor />} />
           <Route path="/pockets/:id" element={<PocketDetail onAdd={(pid) => openAdd(pid)} />} />
           <Route path="/items/new" element={<ItemEditor />} />
-          <Route path="/items/:id" element={<ItemDetail />} />
           <Route path="/items/:id/edit" element={<ItemEditor />} />
+          <Route path="/items/:id" element={<ItemDetail />} />
           <Route path="/settings/account" element={<AccountSettings />} />
           <Route path="/settings/tutorial" element={<TutorialScreen />} />
           <Route path="/settings/appearance" element={<AppearanceSettings />} />

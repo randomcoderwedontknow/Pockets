@@ -343,3 +343,11 @@ export function selectPocketItemCount(state: VaultState, pocketId: string): numb
   for (const i of state.items) if (i.pocketId === pocketId) n++;
   return n;
 }
+
+/** Stable fallback — never use `[]` inline in zustand selectors (React 19 getSnapshot loop). */
+export const EMPTY_ITEM_ATTACHMENTS: ItemAttachment[] = [];
+
+export function selectItemAttachments(state: VaultState, itemId: string | undefined): ItemAttachment[] {
+  if (!itemId) return EMPTY_ITEM_ATTACHMENTS;
+  return state.attachmentsByItem[itemId] ?? EMPTY_ITEM_ATTACHMENTS;
+}

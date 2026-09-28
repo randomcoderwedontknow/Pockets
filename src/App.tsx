@@ -61,7 +61,8 @@ export function App() {
     }
     const q = new URLSearchParams();
     if (pocketId) q.set('pocket', pocketId);
-    navigate(`/items/new?${q.toString()}`);
+    const qs = q.toString();
+    navigate(qs ? `/items/new?${qs}` : '/items/new');
   };
 
   if (!loaded || !settingsLoaded || !accountLoaded || !tutorialLoaded || !releaseLoaded) {
