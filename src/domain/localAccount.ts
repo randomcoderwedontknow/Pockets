@@ -5,6 +5,8 @@ export interface LocalAccount {
   displayName: string;
   /** Preset avatar key, e.g. lavender-1 … lavender-8 */
   avatarPreset: string;
+  /** Create-account flow and required app lock are finished. */
+  profileSetupComplete?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,7 +27,12 @@ export function defaultLocalAccount(now: string): LocalAccount {
     id: 'local',
     displayName: '',
     avatarPreset: 'lavender-1',
+    profileSetupComplete: false,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+export function isProfileSetupComplete(account: LocalAccount): boolean {
+  return account.profileSetupComplete === true;
 }

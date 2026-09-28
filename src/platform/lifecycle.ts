@@ -1,6 +1,7 @@
 import { isNative } from './platform';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthSessionStore } from '@/store/authSessionStore';
 
 type Unsub = () => void;
 
@@ -19,6 +20,7 @@ export function startLifecycleWatch(): Unsub {
   const onShow = () => {
     const { appLock, lockGraceSeconds } = useSettingsStore.getState();
     if (!appLock) return;
+    if (!useAuthSessionStore.getState().signedIn) return;
     const { backgroundedAt, securityConfigured, lockApp } = useSessionStore.getState();
     if (!securityConfigured) return;
     const elapsed = backgroundedAt == null ? Number.POSITIVE_INFINITY : Date.now() - backgroundedAt;

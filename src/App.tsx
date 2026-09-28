@@ -6,6 +6,8 @@ import { ToastHost } from '@/components/Toast';
 import { AppShell } from '@/layout/AppShell';
 import { hideBottomNav } from '@/layout/appRoutes';
 import { LockScreen } from '@/features/lock/LockScreen';
+import { AuthGateway } from '@/features/auth/AuthGateway';
+import { useAuthSessionStore } from '@/store/authSessionStore';
 import { toast } from '@/components/Toast';
 import { useAccountStore } from '@/store/accountStore';
 import { useTutorialStore } from '@/store/tutorialStore';
@@ -25,6 +27,9 @@ export function App() {
   const loaded = useVaultStore((s) => s.loaded);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   const accountLoaded = useAccountStore((s) => s.loaded);
+  const profileReady = useAccountStore((s) => s.profileReady);
+  const displayName = useAccountStore((s) => s.displayName);
+  const signedIn = useAuthSessionStore((s) => s.signedIn);
   const tutorialLoaded = useTutorialStore((s) => s.loaded);
   const releaseLoaded = useReleaseNotesStore((s) => s.loaded);
   const shouldShowWhatsNew = useReleaseNotesStore((s) => s.shouldShowWhatsNew);
@@ -46,10 +51,7 @@ export function App() {
       const appPin = await hasAppLockPin();
       const bio = await getAuthProvider().isAppLockEnrolled();
       useSessionStore.getState().setSecurityConfigured(appPin || bio);
-      const { appLock } = useSettingsStore.getState();
-      if (appLock && (appPin || bio)) {
-        useSessionStore.getState().lockApp();
-      }
+      // Background app lock applies after the user has signed in this session.
     })();
     return startLifecycleWatch();
   }, []);
@@ -70,6 +72,36 @@ export function App() {
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
         <p className="text-secondary">Opening Pockets…</p>
       </div>
+    );
+  }
+
+  if (!profileReady) {
+    return (
+      <>
+        <AuthGateway />
+        <ToastHost />
+      </>
+    );
+  }
+
+  if (!signedIn) {
+    const name = displayName.trim();
+    return (
+      <>
+        <LockScreen
+          variant="sign-in"
+          heading="Welcome back"
+          subheading={name ? `Hi, ${name} — sign in to open Pockets.` : 'Sign in to open Pockets.'}
+          submitLabel="Sign in"
+          onUnlocked={() => {
+            useAuthSessionStore.getState().signIn();
+            useSessionStore.getState().unlockApp();
+            const { appLock } = useSettingsStore.getState();
+            if (appLock) useSessionStore.getState().markAuthenticated();
+          }}
+        />
+        <ToastHost />
+      </>
     );
   }
 

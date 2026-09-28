@@ -1,0 +1,86 @@
+.auth-scene {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 24px) var(--space-5) calc(var(--safe-bottom) + 24px);
+  background:
+    radial-gradient(ellipse 130% 70% at 50% -15%, color-mix(in srgb, var(--pocket-purple) 38%, transparent), transparent 55%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
+    linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--accent-soft) 55%, var(--bg)) 100%);
+}
+
+.auth-scene__inner {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+
+.auth-brand h1 {
+  font-size: 1.65rem;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.auth-brand p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 320px;
+}
+
+.auth-card {
+  background: var(--surface-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--surface-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5);
+}
+
+.auth-card--glow {
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent),
+    0 12px 40px color-mix(in srgb, var(--pocket-purple) 18%, transparent);
+}
+
+.auth-steps {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+}
+
+.auth-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 25%, var(--border));
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.auth-step-dot--active {
+  background: var(--accent);
+  transform: scale(1.15);
+}
+
+.auth-footer {
+  margin-top: auto;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}

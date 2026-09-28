@@ -10,9 +10,25 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getAuthProvider } from '@/platform/auth';
 import { keyHolder } from '@/crypto/keyHolder';
+import '../auth/auth.css';
 import './LockScreen.css';
 
-export function LockScreen() {
+interface LockScreenProps {
+  heading?: string;
+  subheading?: string;
+  submitLabel?: string;
+  /** Purple liquid backdrop for sign-in gate */
+  variant?: 'lock' | 'sign-in';
+  onUnlocked?: () => void;
+}
+
+export function LockScreen({
+  heading = 'Pockets is locked',
+  subheading = 'Unlock to open your vault.',
+  submitLabel = 'Unlock',
+  variant = 'lock',
+  onUnlocked,
+}: LockScreenProps = {}) {
   const [mode, setMode] = useState<'idle' | 'passcode'>('idle');
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState('');
@@ -40,7 +56,10 @@ export function LockScreen() {
     })();
   }, []);
 
-  const unlock = () => useSessionStore.getState().unlockApp();
+  const unlock = () => {
+    if (onUnlocked) onUnlocked();
+    else useSessionStore.getState().unlockApp();
+  };
 
   const onBio = async () => {
     setBusy(true);
@@ -98,12 +117,12 @@ export function LockScreen() {
     }
   };
 
-  return (
-    <div className="lock">
+  const content = (
+    <>
       <div className="lock-brand">
         <Logo size={88} />
-        <h1>Pockets is locked</h1>
-        <p className="text-secondary">Unlock to open your vault.</p>
+        <h1>{heading}</h1>
+        <p className="text-secondary">{subheading}</p>
       </div>
 
       {mode === 'idle' && (
@@ -147,13 +166,23 @@ export function LockScreen() {
           </label>
           {error && <p className="error-text">{error}</p>}
           <Button type="submit" block disabled={busy || passcode.length < 4}>
-            Unlock
+            {submitLabel}
           </Button>
           <Button variant="ghost" block onClick={() => setMode('idle')}>
             Back
           </Button>
         </form>
       )}
-    </div>
+    </>
   );
+
+  if (variant === 'sign-in') {
+    return (
+      <div className="auth-scene">
+        <div className="auth-scene__inner lock">{content}</div>
+      </div>
+    );
+  }
+
+  return <div className="lock">{content}</div>;
 }

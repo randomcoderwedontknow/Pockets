@@ -5,6 +5,8 @@ import { useAccountStore } from '@/store/accountStore';
 import { AVATAR_PRESETS } from '@/domain/localAccount';
 import { AvatarBadge } from '@/components/AvatarBadge';
 import { Button } from '@/components/Button';
+import { useAuthSessionStore } from '@/store/authSessionStore';
+import { useSessionStore } from '@/store/sessionStore';
 
 export function AccountSettings() {
   const account = useAccountStore();
@@ -79,6 +81,16 @@ export function AccountSettings() {
 
         <Button block onClick={save} disabled={busy}>
           Save profile
+        </Button>
+        <Button
+          variant="ghost"
+          block
+          onClick={() => {
+            useAuthSessionStore.getState().signOut();
+            useSessionStore.getState().lockApp();
+          }}
+        >
+          Sign out on this device
         </Button>
       </div>
     </div>
