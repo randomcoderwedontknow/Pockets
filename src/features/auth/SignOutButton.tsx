@@ -7,7 +7,7 @@ import { signOutDevice } from './signOutDevice';
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft';
   block?: boolean;
-  /** Also clear PWA/service worker cache (keeps your vault in IndexedDB). */
+  /** Also clear PWA/service worker cache after removing local data. */
   clearWebCache?: boolean;
   label?: string;
 }
@@ -44,11 +44,11 @@ export function SignOutButton({
       </Button>
       <ConfirmSheet
         open={open}
-        title="Sign out on this device?"
+        title="Sign out and start over?"
         message={
           clearWebCache
-            ? 'You will need to sign in again with your app lock. Web cache will be cleared; your pockets stay on this device.'
-            : 'You will return to the sign-in screen. Your pockets and app lock stay on this device.'
+            ? 'All pockets and your app lock on this device will be erased. You can create a new account next. Web cache will be cleared too. Export a backup first from Settings → Data if you need one.'
+            : 'All pockets and your app lock on this device will be erased so you can create a new account. Export a backup first from Settings → Data if you need one.'
         }
         confirmLabel={busy ? 'Signing out…' : 'Sign out'}
         danger

@@ -69,7 +69,7 @@ export function SettingsScreen() {
       )}
 
       <div style={{ marginTop: 24 }}>
-        <SignOutButton variant="secondary" label="Sign out" />
+        <SignOutButton variant="secondary" label="Sign out and start over" />
       </div>
 
       <p className="help" style={{ textAlign: 'center', marginTop: 28, marginBottom: 8 }}>

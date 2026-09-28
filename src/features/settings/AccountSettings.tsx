@@ -85,13 +85,9 @@ export function AccountSettings() {
         <div className="section-title" style={{ marginTop: 16 }}>
           Session
         </div>
-        <SignOutButton variant="danger" label="Sign out on this device" />
-        <SignOutButton
-          variant="ghost"
-          clearWebCache
-          label="Sign out and clear web cache"
-        />
-        <p className="help">Clears cached web files only—not your pockets or app lock.</p>
+        <SignOutButton variant="danger" label="Sign out and start over" />
+        <SignOutButton variant="ghost" clearWebCache label="Sign out, erase data, and clear web cache" />
+        <p className="help">Sign out removes everything on this device and opens create-account again—not the app lock sign-in screen.</p>
       </div>
     </div>
   );

@@ -1,21 +1,39 @@
 import { cancelAuthentication } from '@/features/lock/authFlow';
+import { getAuthProvider } from '@/platform/auth';
+import { getStorage } from '@/platform/storage';
+import { clearAppLockPin } from '@/security/appLockService';
+import { lock as lockVault } from '@/security/securityService';
 import { useAuthSessionStore } from '@/store/authSessionStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { lock as lockVault } from '@/security/securityService';
+import { resetVaultStoreLocks } from '@/store/vaultStore';
 
 export interface SignOutOptions {
-  /** Clear service worker precache (web/PWA). Vault data in IndexedDB is kept. */
+  /** Clear service worker precache (web/PWA) after wiping local data. */
   clearWebCache?: boolean;
   /** Hard navigation to home so stack routes and in-memory UI reset. */
   reload?: boolean;
 }
 
-/** End this device session: drop vault key from memory and return to sign-in. */
+/**
+ * Remove this device's local account and vault, then return to create-account onboarding.
+ * Export first from Settings → Data if you need a backup.
+ */
 export async function signOutDevice(options: SignOutOptions = {}): Promise<void> {
   const { clearWebCache = false, reload = true } = options;
 
   cancelAuthentication();
   lockVault();
+
+  try {
+    await getAuthProvider().unenrolAppLock();
+  } catch {
+    /* ignore */
+  }
+  await clearAppLockPin();
+  await getStorage().clearAll();
+  resetVaultStoreLocks();
+
+  useSessionStore.getState().setSecurityConfigured(false);
   useSessionStore.getState().lockApp();
   useAuthSessionStore.getState().signOut();
 
