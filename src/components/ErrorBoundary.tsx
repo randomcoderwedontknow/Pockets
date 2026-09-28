@@ -27,10 +27,11 @@ export class ErrorBoundary extends Component<Props, State> {
         <Button
           onClick={() => {
             this.setState({ error: null });
-            window.location.assign('/');
+            if (window.history.length > 1) window.history.back();
+            else window.location.assign('/');
           }}
         >
-          Go home
+          Go back
         </Button>
       </div>
     );

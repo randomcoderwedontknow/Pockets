@@ -25,7 +25,8 @@ export function ItemDetail() {
   const fields = useVaultStore((s) => (id ? s.fieldsByItem[id] : undefined));
   const pocket = useVaultStore((s) => s.pockets.find((p) => p.id === item?.pocketId));
   const allTags = useVaultStore((s) => s.tags);
-  const tags = allTags.filter((t) => item?.tagIds.includes(t.id));
+  const tagIds = item?.tagIds ?? [];
+  const tags = allTags.filter((t) => tagIds.includes(t.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [protectText, setProtectText] = useState<string | null>(null);
   const [protectSheet, setProtectSheet] = useState(false);
@@ -39,10 +40,20 @@ export function ItemDetail() {
     setProtectSheet(true);
   }, []);
 
-  const { menu, closeMenu, protectFromMenu } = usePocketViewProtection(true, onProtectSelection);
+  const { menu, closeMenu, protectFromMenu } = usePocketViewProtection(!!item, onProtectSelection);
   const attachments = useVaultStore((s) => (id ? s.attachmentsByItem[id] ?? [] : []));
   const { requestOpen, confirmProps: linkConfirm } = useOpenLinkConfirm();
-  const descUrls = item?.description ? extractUrlsFromText(item.description) : [];
+
+  if (!item) {
+    return (
+      <div className="page">
+        <EmptyState title="Item not found" action={<Button onClick={() => navigate(-1)}>Back</Button>} />
+      </div>
+    );
+  }
+
+  const itemFields = fields ?? [];
+  const descUrls = item.description ? extractUrlsFromText(item.description) : [];
 
   const applyProtect = async (notePasscode: string) => {
     if (!item || !protectText) return;
@@ -93,15 +104,6 @@ export function ItemDetail() {
     }
   };
 
-  if (!item) {
-    return (
-      <div className="page">
-        <EmptyState title="Item not found" action={<Button onClick={() => navigate(-1)}>Back</Button>} />
-      </div>
-    );
-  }
-
-  const itemFields = fields ?? [];
   const urlField = itemFields.find((f) => f.kind === 'url' && !f.protected && f.value);
 
   const remove = async () => {
