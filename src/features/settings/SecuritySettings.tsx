@@ -118,6 +118,9 @@ export function SecuritySettings() {
                   try {
                     await getAuthProvider().enrolAppLock();
                     toast('Biometric app unlock enabled');
+                    if (!(await hasAppLockPin())) {
+                      toast('Also set an app lock code as backup', 'default');
+                    }
                     void refresh();
                   } catch (e) {
                     toast((e as Error).message || 'Could not enable', 'error');

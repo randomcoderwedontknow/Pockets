@@ -1,7 +1,7 @@
 import { Sheet } from '@/components/Sheet';
 import { Button } from '@/components/Button';
 import { Logo } from '@/components/Logo';
-import { WHATS_NEW_V11_BULLETS, WHATS_NEW_V11_TITLE } from './whatsNewV11';
+import { whatsNewForVersion } from './whatsNewContent';
 
 interface Props {
   open: boolean;
@@ -9,13 +9,14 @@ interface Props {
 }
 
 export function WhatsNewSheet({ open, onContinue }: Props) {
+  const { title, bullets } = whatsNewForVersion();
   return (
-    <Sheet open={open} onClose={onContinue} title={WHATS_NEW_V11_TITLE} tall>
+    <Sheet open={open} onClose={onContinue} title={title} tall>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <Logo size={72} />
       </div>
       <ul className="whats-new-list">
-        {WHATS_NEW_V11_BULLETS.map((line) => (
+        {bullets.map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>

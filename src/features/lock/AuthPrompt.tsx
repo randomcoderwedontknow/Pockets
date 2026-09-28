@@ -81,7 +81,7 @@ export function AuthPrompt() {
         }}
       >
         <label className="field">
-          <span>Passcode</span>
+          <span>App lock code</span>
           <input
             type="password"
             autoComplete="current-password"

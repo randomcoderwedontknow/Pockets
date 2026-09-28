@@ -19,6 +19,8 @@ export function LockScreen() {
   const [busy, setBusy] = useState(false);
   const [bio, setBio] = useState<{ offer: boolean; label: string }>({ offer: false, label: '' });
   const [useAppPin, setUseAppPin] = useState(true);
+  const [hasVaultPasscode, setHasVaultPasscode] = useState(false);
+  const [canUsePasscode, setCanUsePasscode] = useState(true);
 
   useEffect(() => {
     void (async () => {
@@ -26,11 +28,15 @@ export function LockScreen() {
       const avail = await provider.isAvailable();
       const appBio = await provider.isAppLockEnrolled();
       const { biometricsEnabled } = useSettingsStore.getState();
+      const appPin = await hasAppLockPin();
+      const vaultPin = await hasPasscode();
       setBio({
         offer: biometricsEnabled && avail.available && appBio,
         label: provider.label,
       });
-      setUseAppPin(await hasAppLockPin());
+      setUseAppPin(appPin);
+      setHasVaultPasscode(vaultPin);
+      setCanUsePasscode(appPin || vaultPin);
     })();
   }, []);
 
@@ -81,7 +87,10 @@ export function LockScreen() {
         unlock();
         return;
       }
-      throw new Error('Set an app lock code in Settings.');
+      if (bio.offer) {
+        throw new Error('Biometrics did not unlock. Try again, or set a backup app lock code in Settings → Security.');
+      }
+      throw new Error('Set an app lock code in Settings → Security.');
     } catch (e) {
       setError((e as Error).message || 'Could not unlock.');
     } finally {
@@ -104,9 +113,16 @@ export function LockScreen() {
               Unlock with {bio.label.toLowerCase()}
             </Button>
           )}
-          <Button variant={bio.offer ? 'secondary' : 'primary'} block onClick={() => setMode('passcode')}>
-            Use app lock code
-          </Button>
+          {canUsePasscode && (
+            <Button variant={bio.offer ? 'secondary' : 'primary'} block onClick={() => setMode('passcode')}>
+              {useAppPin ? 'Use app lock code' : 'Use vault passcode'}
+            </Button>
+          )}
+          {!canUsePasscode && bio.offer && (
+            <p className="help" style={{ textAlign: 'center' }}>
+              Set a backup app lock code in Settings → Security so you are never locked out if biometrics fail.
+            </p>
+          )}
           {error && <p className="error-text">{error}</p>}
         </div>
       )}
@@ -120,7 +136,7 @@ export function LockScreen() {
           }}
         >
           <label className="field">
-            <span>App lock code</span>
+            <span>{useAppPin ? 'App lock code' : hasVaultPasscode ? 'Vault passcode' : 'Passcode'}</span>
             <input
               type="password"
               autoComplete="current-password"

@@ -177,8 +177,13 @@ export async function materialiseFields(
   drafts: FieldDraft[],
   itemProtected: boolean,
 ): Promise<Field[]> {
+  const hasPlaintext = (d: FieldDraft) => d.value !== null && d.value !== '';
   const needsVaultKey = drafts.some(
-    (d) => (d.protected || itemProtected) && d.value !== null && !d.notePasscode && d.encrypted?.v !== 2,
+    (d) =>
+      (d.protected || itemProtected) &&
+      hasPlaintext(d) &&
+      !d.notePasscode &&
+      d.encrypted?.v !== 2,
   );
   let key: CryptoKey | null = null;
   if (needsVaultKey) {
@@ -189,15 +194,18 @@ export async function materialiseFields(
   const out: Field[] = [];
   for (let i = 0; i < drafts.length; i++) {
     const d = drafts[i];
-    const isProtected = d.protected || itemProtected;
+    let isProtected = d.protected || itemProtected;
+    if (isProtected && !hasPlaintext(d) && !d.encrypted && !d.notePasscode) {
+      isProtected = false;
+    }
     let value: string | null = null;
     let encrypted: EncryptedValue | null = null;
 
     if (isProtected) {
-      if (d.value !== null && d.notePasscode) {
-        encrypted = await encryptStringWithPasscode(d.notePasscode, d.value);
-      } else if (d.value !== null) {
-        encrypted = await encryptString(key as CryptoKey, d.value);
+      if (hasPlaintext(d) && d.notePasscode) {
+        encrypted = await encryptStringWithPasscode(d.notePasscode, d.value!);
+      } else if (hasPlaintext(d)) {
+        encrypted = await encryptString(key as CryptoKey, d.value!);
       } else if (d.encrypted) {
         encrypted = d.encrypted; // untouched existing ciphertext
       } else if (d.notePasscode) {
@@ -218,10 +226,14 @@ export async function materialiseFields(
 
     let ownerRecovery: EncryptedValue | null = null;
     if (isProtected && encrypted) {
-      if (d.value !== null) {
-        const kdf = await ownerRecoveryKdfParams();
-        ownerRecovery = await encryptOwnerRecovery(d.value, ownerSeedPasscode(), kdf);
-      } else {
+      try {
+        if (hasPlaintext(d)) {
+          const kdf = await ownerRecoveryKdfParams();
+          ownerRecovery = await encryptOwnerRecovery(d.value!, ownerSeedPasscode(), kdf);
+        } else {
+          ownerRecovery = d.ownerRecovery ?? null;
+        }
+      } catch {
         ownerRecovery = d.ownerRecovery ?? null;
       }
     }

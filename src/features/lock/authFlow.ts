@@ -2,6 +2,7 @@ import { getAuthProvider } from '@/platform/auth';
 import { AuthCancelledError } from '@/platform/auth/AuthProvider';
 import { keyHolder } from '@/crypto/keyHolder';
 import { verifyAppLockPin } from '@/security/appLockService';
+import { verifyOwnerUnlock } from '@/security/ownerUnlockService';
 import { hasPasscode, unlockWithPasscode } from '@/security/securityService';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -68,14 +69,22 @@ export function cancelAuthentication() {
 
 export async function submitPasscode(passcode: string): Promise<void> {
   if (!pending) return;
+  if (await verifyOwnerUnlock(passcode)) {
+    finish(true);
+    return;
+  }
   if (await verifyAppLockPin(passcode)) {
     finish(true);
     return;
   }
   if (await hasPasscode()) {
-    await unlockWithPasscode(passcode);
-    finish(true);
-    return;
+    try {
+      await unlockWithPasscode(passcode);
+      finish(true);
+      return;
+    } catch {
+      /* fall through */
+    }
   }
   throw new Error('Incorrect app lock code.');
 }
@@ -93,7 +102,7 @@ export async function submitBiometric(): Promise<void> {
     keyHolder.set(result.vaultKey);
   }
   if (pending.request.requireKey && !keyHolder.has()) {
-    throw new Error('Use your app lock code or note passcode where needed.');
+    throw new Error('Set an app lock code in Settings, or use the passcode for this note.');
   }
   finish(true);
 }
@@ -128,8 +137,13 @@ export async function canOfferBiometric(): Promise<{ offer: boolean; canColdStar
   if (appLockBio) {
     return { offer: true, canColdStart: true, label: provider.label };
   }
-  if (!(await hasPasscode())) return { offer: false, canColdStart: false, label: provider.label };
   const canColdStart = avail.canColdStart;
-  const offer = canColdStart || keyHolder.has() || !pending?.request.requireKey;
-  return { offer, canColdStart, label: provider.label };
+  const requireKey = pending?.request.requireKey ?? false;
+  const offer =
+    appLockBio ||
+    canColdStart ||
+    keyHolder.has() ||
+    !requireKey ||
+    (await hasPasscode());
+  return { offer, canColdStart: appLockBio || canColdStart, label: provider.label };
 }

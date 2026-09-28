@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useSmoothNavigate } from '@/layout/SmoothNavigationProvider';
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import type { FieldDraft, FieldKind, ItemType } from '@/domain/types';
@@ -20,7 +20,6 @@ function blankField(): FieldDraft {
 export function ItemEditor() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const location = useLocation();
   const navigate = useSmoothNavigate();
   const existing = useVaultStore((s) => s.items.find((i) => i.id === id));
   const existingFields = useVaultStore((s) => (id ? s.fieldsByItem[id] : undefined));
@@ -82,21 +81,39 @@ export function ItemEditor() {
     setError('');
     try {
       const needsProtect = itemProtected || fields.some((f) => f.protected);
+      const fieldHasContent = (f: FieldDraft) => f.value !== null && f.value !== '';
       const needsNewNotePasscode =
         needsProtect &&
-        fields.some((f) => (f.protected || itemProtected) && f.value !== null && (!f.encrypted || f.encrypted.v !== 2));
+        fields.some(
+          (f) =>
+            (f.protected || itemProtected) &&
+            fieldHasContent(f) &&
+            (!f.encrypted || f.encrypted.v !== 2),
+        );
 
       if (needsNewNotePasscode && !notePasscode) {
         setNotePasscodePrompt(true);
         return;
       }
 
-      if (needsProtect && !notePasscode && (await hasPasscode()) && !useSessionStore.getState().hasKey) {
+      const needsLegacyVaultKey = fields.some(
+        (f) =>
+          (f.protected || itemProtected) &&
+          fieldHasContent(f) &&
+          !notePasscode &&
+          (!f.encrypted || f.encrypted.v !== 2),
+      );
+      if (needsLegacyVaultKey && (await hasPasscode()) && !useSessionStore.getState().hasKey) {
         const ok = await requestAuthentication({ reason: 'Unlock to protect this information', requireKey: true });
         if (!ok) return;
       }
 
-      await useVaultStore.getState().saveItem({
+      if (!pocketId) {
+        setError('Choose a pocket first.');
+        return;
+      }
+
+      const saved = await useVaultStore.getState().saveItem({
         id: existing?.id,
         pocketId,
         type,
@@ -113,7 +130,7 @@ export function ItemEditor() {
         })),
       });
       toast(existing ? 'Saved' : 'Added');
-      navigate(existing ? `/items/${existing.id}` : location.state?.from ?? '/', { replace: !existing });
+      navigate(existing ? `/items/${existing.id}` : `/items/${saved.id}`, { replace: true });
     } catch (e) {
       setError((e as Error).message || 'Could not save.');
     } finally {

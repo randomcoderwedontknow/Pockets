@@ -290,8 +290,10 @@ button:focus-visible {
 
 /* Cards */
 .card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--surface-glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
@@ -307,8 +309,10 @@ button:focus-visible {
 
 /* Lists */
 .list {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--surface-glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }

@@ -25,8 +25,9 @@
   --accent-soft-text: #4a4080;
 
   /* Liquid layer (subtle) */
-  --surface-glass: rgba(255, 255, 255, 0.72);
-  --surface-glass-border: color-mix(in srgb, var(--accent) 12%, var(--border));
+  --surface-glass: color-mix(in srgb, var(--bg-elevated) 78%, transparent);
+  --surface-glass-border: color-mix(in srgb, var(--accent) 18%, var(--border));
+  --surface-liquid: color-mix(in srgb, var(--accent-soft) 55%, transparent);
 
   /* Semantic */
   --danger: #c74b46;
@@ -106,8 +107,9 @@
   --accent-soft: #2a2540;
   --accent-soft-text: #c4b8e8;
 
-  --surface-glass: rgba(33, 30, 42, 0.78);
-  --surface-glass-border: color-mix(in srgb, var(--accent) 18%, var(--border));
+  --surface-glass: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
+  --surface-glass-border: color-mix(in srgb, var(--accent) 22%, var(--border));
+  --surface-liquid: color-mix(in srgb, var(--accent-soft) 45%, transparent);
 
   --danger: #e2685f;
   --danger-soft: #3a1f1d;
