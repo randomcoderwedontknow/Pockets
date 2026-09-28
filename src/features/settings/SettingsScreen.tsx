@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useSmoothNavigate } from '@/layout/SmoothNavigationProvider';
 import { ChevronRight, Database, GraduationCap, Info, Layers, Palette, Shield, User } from 'lucide-react';
+import { SignOutButton } from '@/features/auth/SignOutButton';
 import { AvatarBadge } from '@/components/AvatarBadge';
 import { useAccountStore } from '@/store/accountStore';
 import { useTutorialStore } from '@/store/tutorialStore';
@@ -66,6 +67,10 @@ export function SettingsScreen() {
           </Button>
         </div>
       )}
+
+      <div style={{ marginTop: 24 }}>
+        <SignOutButton variant="secondary" label="Sign out" />
+      </div>
 
       <p className="help" style={{ textAlign: 'center', marginTop: 28, marginBottom: 8 }}>
         v{APP_VERSION}
